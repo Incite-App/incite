@@ -1,3 +1,3 @@
 # Incite
 
-## Web/App based meetign scheduler
+## Web/App based meeting scheduler

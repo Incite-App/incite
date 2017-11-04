@@ -6,6 +6,7 @@ import { AppComponent } from './app.component';
 import { AngularFireModule } from 'angularfire2';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MaterialModule } from './material.module';
+import { FlexLayoutModule } from '@angular/flex-layout';
 
 @NgModule({
   declarations: [
@@ -15,6 +16,7 @@ import { MaterialModule } from './material.module';
     BrowserModule,
     BrowserAnimationsModule,
     AppRoutingModule,
+    FlexLayoutModule,
     MaterialModule,
     AngularFireModule.initializeApp({
       apiKey: 'AIzaSyB8CAh3Cddj9SQdadar8ULN9nLFGXF2fCU',

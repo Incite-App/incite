@@ -1,14 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { LoginComponent } from '../login/login.component';
-import { AngularFireAuth } from 'angularfire2/auth';
-import { MatDialog } from '@angular/material';
-import * as firebase from 'firebase';
+import { MatDialog, MatDialogRef } from '@angular/material';
+import { InciteUser } from '../../models/user';
+import { UserService } from '../../services/user.service';
+import { Observable } from 'rxjs/Observable';
 
 @Component({
   selector: 'incite-user-menu',
   template: `
-    <button *ngIf="!user" color="accent" mat-raised-button (click)="beginLogin()">Login</button>
-    <button *ngIf="!!user" mat-button [matMenuTriggerFor]="userMenu">Welcome {{user?.displayName}}!</button>
+    <button *ngIf="!(user$ | async)" color="accent" mat-raised-button (click)="beginLogin()">Login</button>
+    <button *ngIf="!!(user$ | async)" mat-button [matMenuTriggerFor]="userMenu">Welcome {{(user$ | async)?.firstName}}!</button>
     <mat-menu #userMenu="matMenu">
       <button mat-button (click)="logout()">Logout</button>
     </mat-menu>
@@ -16,28 +17,31 @@ import * as firebase from 'firebase';
   styleUrls: ['./user-menu.component.scss']
 })
 export class UserMenuComponent implements OnInit {
-  public user: firebase.User;
+  public user$: Observable<InciteUser>;
+  private _dialogRef: MatDialogRef<LoginComponent>;
 
-  constructor(private _afAuth: AngularFireAuth,
-              private _dialog: MatDialog) {
+  constructor(private _dialog: MatDialog,
+              private _userService: UserService) {
 
   }
 
   public ngOnInit() {
-    this._afAuth.authState
-      .subscribe((user: firebase.User) => {
-        this.user = user;
-      });
+    this.user$ = this._userService.currentUser;
+    this.user$.subscribe((user: InciteUser) => {
+      if (!!user && !!this._dialogRef) {
+        this._dialogRef.close();
+      }
+    });
   }
 
   public beginLogin(): void {
-    this._dialog.open(LoginComponent, {
+    this._dialogRef = this._dialog.open(LoginComponent, {
       position: {top: '10%'},
       width: '500px'
     });
   }
 
   public logout(): void {
-    this._afAuth.auth.signOut();
+    this._userService.logout();
   }
 }

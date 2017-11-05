@@ -7,17 +7,21 @@ import { AngularFireModule } from 'angularfire2';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MaterialModule } from './material.module';
 import { FlexLayoutModule } from '@angular/flex-layout';
-import { AngularFireAuth } from 'angularfire2/auth';
+import { AngularFireAuth, AngularFireAuthModule } from 'angularfire2/auth';
 import { ComponentsModule } from './components/components.module';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ServicesModule } from './services/services.module';
 import { ErrorNotifierService } from './services/error-notifier.service';
+import { CommonModule } from '@angular/common';
+import { AngularFirestoreModule } from 'angularfire2/firestore';
+import { UserService } from './services/user.service';
 
 @NgModule({
   declarations: [
     AppComponent
   ],
   imports: [
+    CommonModule,
     BrowserModule,
     BrowserAnimationsModule,
     AppRoutingModule,
@@ -35,12 +39,23 @@ import { ErrorNotifierService } from './services/error-notifier.service';
       storageBucket: 'incite-10624.appspot.com',
       messagingSenderId: '681440609050'
     }),
+    AngularFirestoreModule,
+    AngularFireAuthModule
   ],
   providers: [
     AngularFireAuth,
     ErrorNotifierService
   ],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
+  exports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule
+  ]
 })
 export class AppModule {
+  constructor(private _userService: UserService) {
+    console.log('INIT');
+    this._userService.init();
+  }
 }

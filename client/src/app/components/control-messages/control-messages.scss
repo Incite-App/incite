@@ -1,0 +1,17 @@
+control-messages {
+  .error-message {
+    padding-right: .5rem;
+    background-color: $list-background-color;
+    color: color($colors, danger, contrast);
+    text-align: right;
+
+    ion-icon {
+      vertical-align: middle;
+      font-size: 1.4em;
+    }
+    span {
+      vertical-align: middle;
+    }
+
+  }
+}

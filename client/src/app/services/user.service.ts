@@ -22,10 +22,7 @@ export class UserService {
         this._firebaseUser = user;
         console.log('FIREBASE USER', this._firebaseUser);
         if (!!this._firebaseUser) {
-          const inciteUser = this._createInciteUser(this._firebaseUser);
-          console.log('INCITE USER', inciteUser);
-          this.currentUser.next(inciteUser);
-          this._syncInciteUserToFirebase(inciteUser);
+          this.syncInciteUserToFirebase();
         } else {
           this.currentUser.next(undefined);
         }
@@ -36,56 +33,61 @@ export class UserService {
     this._afAuth.auth.signOut();
   }
 
-  private _createInciteUser(firebaseUser: firebase.User): InciteUser {
-    const nameArray = firebaseUser.displayName.split(' ');
-
-    const inciteUser: InciteUser = {
-      firstName: '',
-      lastName: '',
-      email: firebaseUser.email,
-      photoURL: firebaseUser.photoURL
-    };
-    if (!!nameArray.length) {
-      inciteUser.firstName = nameArray[0];
-      if (nameArray.length > 1) {
-        nameArray.splice(0, 1);
-        inciteUser.lastName = nameArray.join(' ');
-      }
-    }
-    return inciteUser;
-  }
-
-  private _syncInciteUserToFirebase(inciteUser: InciteUser) {
+  public syncInciteUserToFirebase(inciteUser?: InciteUser): Promise<InciteUser> {
     const docRef = this._af.doc(`users/${this._firebaseUser.uid}`);
     if (!!this._userSubscription) {
       this._userSubscription.unsubscribe();
       this._userSubscription = undefined;
     }
-    this._userSubscription = docRef.valueChanges()
-      .subscribe((document: InciteUser) => {
-        if (!document) {
-          this._af.doc(`users/${this._firebaseUser.uid}`).set(inciteUser)
-            .then(() => {
-              console.log('INCITE USER CREATED');
-            })
-            .catch((error) => {
-              console.warn('INCITE USER CREATE ERROR', error);
-            });
-        } else {
-          docRef.update(inciteUser)
-            .then(() => {
-              console.log('INCITE USER UPDATED');
-            })
-            .catch((error) => {
-              console.warn('UPDATE ERROR', error);
-            });
-        }
-      }, (error: any) => {
-        console.warn(error);
-        if (!!this._userSubscription) {
-          this._userSubscription.unsubscribe();
-          this._userSubscription = undefined;
-        }
-      });
+    return new Promise((resolve, reject) => {
+      this._userSubscription = docRef.valueChanges()
+        .subscribe((document: InciteUser) => {
+          if (!document) {
+            inciteUser = inciteUser || this.createInciteUser(this._firebaseUser);
+            this._af.doc(`users/${this._firebaseUser.uid}`).set(inciteUser)
+              .then(() => {
+                console.log('INCITE USER CREATED');
+                this.currentUser.next(inciteUser);
+                resolve(inciteUser);
+              })
+              .catch((error) => {
+                console.warn('INCITE USER CREATE ERROR', error);
+                reject(error);
+              });
+          } else {
+            inciteUser = inciteUser || this.createInciteUser(this._firebaseUser, document);
+            docRef.update(inciteUser)
+              .then(() => {
+                console.log('INCITE USER UPDATED');
+                console.log('INCITE USER', inciteUser);
+                this.currentUser.next(inciteUser);
+                resolve(inciteUser);
+              })
+              .catch((error) => {
+                console.warn('UPDATE ERROR', error);
+                reject(error);
+              });
+          }
+        }, (error: any) => {
+          console.warn(error);
+          if (!!this._userSubscription) {
+            this._userSubscription.unsubscribe();
+            this._userSubscription = undefined;
+          }
+          reject(error);
+        });
+    });
+  }
+
+  public createInciteUser(firebaseUser: firebase.User, inciteUser?: InciteUser): InciteUser {
+    inciteUser = inciteUser || {};
+    inciteUser = {
+      ...inciteUser,
+      displayName: inciteUser.displayName || firebaseUser.displayName,
+      email: firebaseUser.email,
+      photoURL: firebaseUser.photoURL
+    };
+
+    return inciteUser;
   }
 }

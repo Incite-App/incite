@@ -9,7 +9,7 @@ import { Observable } from 'rxjs/Observable';
   selector: 'incite-user-menu',
   template: `
     <button *ngIf="!(user$ | async)" color="accent" mat-raised-button (click)="beginLogin()">Login</button>
-    <button *ngIf="!!(user$ | async)" mat-button [matMenuTriggerFor]="userMenu">Welcome {{(user$ | async)?.firstName}}!</button>
+    <button *ngIf="!!(user$ | async)" mat-button [matMenuTriggerFor]="userMenu">Welcome {{(user$ | async)?.displayName}}</button>
     <mat-menu #userMenu="matMenu">
       <button mat-button (click)="logout()">Logout</button>
     </mat-menu>

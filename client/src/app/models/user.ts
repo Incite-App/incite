@@ -1,6 +1,5 @@
 export interface InciteUser {
-  firstName: string;
-  lastName: string;
-  email: string;
+  displayName?: string;
+  email?: string;
   photoURL?: string;
 }

@@ -5,15 +5,16 @@ import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms'
 import { ErrorNotifierService } from '../../services/error-notifier.service';
 import { CustomValidators } from '../../services/custom-validators';
 import { AngularFirestore } from 'angularfire2/firestore';
+import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'incite-login',
   template: `
     <div mat-dialog-content>
-      <mat-progress-spinner mode="indeterminate" *ngIf="isBusy"></mat-progress-spinner>
       <mat-tab-group>
         <mat-tab label="Login">
-          <form [formGroup]="loginForm">
+          <mat-progress-spinner mode="indeterminate" *ngIf="isBusy"></mat-progress-spinner>
+          <form [formGroup]="loginForm" [hidden]="isBusy">
             <div fxLayout="column" fxLayoutAlign="start center">
               <mat-form-field>
                 <input type="email" matInput [formControl]="loginEmailControl" placeholder="E-Mail Address">
@@ -34,24 +35,22 @@ import { AngularFirestore } from 'angularfire2/firestore';
               </button>
             </div>
           </form>
-
-          <mat-list>
-            <mat-divider>Or Sign In With...</mat-divider>
-            <mat-list-item>
-              <button type="button" mat-raised-button (click)="doGoogleLogin()">Google</button>
-            </mat-list-item>
-          </mat-list>
+          <div [hidden]="isBusy">
+            <mat-list>
+              <mat-divider>Or Sign In With...</mat-divider>
+              <mat-list-item>
+                <button type="button" mat-raised-button (click)="doGoogleLogin()">Google</button>
+              </mat-list-item>
+            </mat-list>
+          </div>
         </mat-tab>
         <mat-tab label="Register">
-          <form [formGroup]="registerForm">
+          <mat-progress-spinner mode="indeterminate" *ngIf="isBusy"></mat-progress-spinner>
+          <form [formGroup]="registerForm" [hidden]="isBusy">
             <div fxLayout="column" fxLayoutAlign="start center">
               <mat-form-field>
-                <input type="text" matInput [formControl]="firstNameControl" placeholder="First Name">
-                <mat-error inciteControlMessages [control]="firstNameControl"></mat-error>
-              </mat-form-field>
-              <mat-form-field>
-                <input type="text" matInput [formControl]="lastNameControl" placeholder="Last Name">
-                <mat-error inciteControlMessages [control]="lastNameControl"></mat-error>
+                <input type="text" matInput [formControl]="fullNameControl" placeholder="Full Name">
+                <mat-error inciteControlMessages [control]="fullNameControl"></mat-error>
               </mat-form-field>
               <mat-form-field>
                 <input type="email" matInput [formControl]="registerEmailControl" placeholder="E-Mail Address">
@@ -71,7 +70,7 @@ import { AngularFirestore } from 'angularfire2/firestore';
               <div fxFlex="1 0"></div>
               <button mat-raised-button
                       type="submit"
-                      [disabled]="loginForm.invalid"
+                      [disabled]="registerForm.invalid"
                       (click)="doEmailPasswordRegister()">Register
               </button>
             </div>
@@ -91,15 +90,15 @@ export class LoginComponent implements OnInit {
   public registerEmailControl: FormControl;
   public registerPasswordControl: FormControl;
   public registerPasswordConfirmControl: FormControl;
-  public firstNameControl: FormControl;
-  public lastNameControl: FormControl;
+  public fullNameControl: FormControl;
 
   public isBusy: boolean;
 
   constructor(private _afAuth: AngularFireAuth,
               private _af: AngularFirestore,
               private _formBuilder: FormBuilder,
-              private _errorNotifier: ErrorNotifierService) {
+              private _errorNotifier: ErrorNotifierService,
+              private _userService: UserService) {
   }
 
   public ngOnInit() {
@@ -117,10 +116,10 @@ export class LoginComponent implements OnInit {
       Validators.required,
       CustomValidators.getValidVerifiedPasswordValidator(this.registerPasswordControl)
     ]);
-    this.firstNameControl = new FormControl('', Validators.required);
-    this.lastNameControl = new FormControl('', Validators.required);
+    this.fullNameControl = new FormControl('', Validators.required);
 
     this.registerForm = this._formBuilder.group({
+      'fullName': this.fullNameControl,
       'email': this.registerEmailControl,
       'password': this.registerPasswordControl,
       'passwordConfirm': this.registerPasswordConfirmControl
@@ -130,36 +129,37 @@ export class LoginComponent implements OnInit {
   public async doGoogleLogin(): Promise<any> {
     this.isBusy = true;
     try {
-      const result: firebase.auth.UserCredential = await this._afAuth.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+      await this._afAuth.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
     } catch (error) {
       console.warn(error);
+      this.isBusy = false;
     }
-    this.isBusy = false;
   }
 
   public async doEmailPasswordLogin(): Promise<any> {
     this.isBusy = true;
     try {
-      const result: firebase.auth.UserCredential = await this._afAuth.auth.signInWithEmailAndPassword(
+      await this._afAuth.auth.signInWithEmailAndPassword(
         this.loginEmailControl.value,
         this.loginPasswordControl.value
       );
-      console.log('RESULT', result);
     } catch (error) {
       console.warn(error);
       this._errorNotifier.showError(error.message);
+      this.isBusy = false;
     }
-    this.isBusy = false;
   }
 
   public async doEmailPasswordRegister(): Promise<any> {
     this.isBusy = true;
     try {
-      const result = await this._afAuth.auth.createUserWithEmailAndPassword(
+      const result: firebase.User = await this._afAuth.auth.createUserWithEmailAndPassword(
         this.registerEmailControl.value,
         this.registerPasswordControl.value
       );
-      console.log('REGISTRATION RESULT', result);
+      await this._userService.syncInciteUserToFirebase(this._userService.createInciteUser(result, {
+        displayName: this.fullNameControl.value
+      }));
     } catch (error) {
       console.warn(error);
       this._errorNotifier.showError(error.message);

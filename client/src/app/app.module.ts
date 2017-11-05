@@ -7,6 +7,11 @@ import { AngularFireModule } from 'angularfire2';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MaterialModule } from './material.module';
 import { FlexLayoutModule } from '@angular/flex-layout';
+import { AngularFireAuth } from 'angularfire2/auth';
+import { ComponentsModule } from './components/components.module';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { ServicesModule } from './services/services.module';
+import { ErrorNotifierService } from './services/error-notifier.service';
 
 @NgModule({
   declarations: [
@@ -16,8 +21,12 @@ import { FlexLayoutModule } from '@angular/flex-layout';
     BrowserModule,
     BrowserAnimationsModule,
     AppRoutingModule,
+    ComponentsModule,
     FlexLayoutModule,
     MaterialModule,
+    FormsModule,
+    ReactiveFormsModule,
+    ServicesModule,
     AngularFireModule.initializeApp({
       apiKey: 'AIzaSyB8CAh3Cddj9SQdadar8ULN9nLFGXF2fCU',
       authDomain: 'incite-10624.firebaseapp.com',
@@ -27,7 +36,10 @@ import { FlexLayoutModule } from '@angular/flex-layout';
       messagingSenderId: '681440609050'
     }),
   ],
-  providers: [],
+  providers: [
+    AngularFireAuth,
+    ErrorNotifierService
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule {

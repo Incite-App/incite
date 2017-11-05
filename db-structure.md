@@ -25,7 +25,7 @@ _____________________________________________
     * Attendant
 
 ### Parts?
-    * Weekend
+    * `TBD` Weekend
         * Chairman
         * Public Talks
             * Outlines []
@@ -48,10 +48,18 @@ _____________________________________________
 ## Announcements
 
 _____________________________________________
+## Org
+	* Name
+	* Address
+	* Meeting Times
+	* Langauge 
+_____________________________________________
 ## Roles
-	* Admin
-	* COB
-	* LAMMO
-	* PT Coordinator 
-	* Sound Coordinator 
-	* User
+	* Super User - Has Unlimited access to all orgs
+	* Org Admin - Has all access to their org
+	* COB - Has all access to their org
+	* LAMMO - Can edit Student Talk Assignments and add study points in their org
+	* PT Coordinator - `TBD` Can edit Public Talk Assignments in their org
+	* Sound Coordinator - `TBD` Can edit Sound Assignments in their org
+	* User - View only of Schedules and Announcments for their org
+	* Anonomous User - Has requested to be added to an org but is in a waiting staus until approved

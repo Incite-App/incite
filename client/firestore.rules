@@ -3,5 +3,9 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if request.auth.uid == userId;
     }
+    match /roles/{roleId} {
+    	allow read: if request.auth.uid != null;
+    	allow write: if get(/database/$(database)/documents/users/$(request.auth.uid)/role).data.isSuperUser == true;
+    }
   }
 }

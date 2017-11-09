@@ -10,11 +10,14 @@ import { FlexLayoutModule } from '@angular/flex-layout';
 import { ControlMessagesDirective } from './control-messages/control-messages';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AngularFirestore } from 'angularfire2/firestore';
+import { StartComponent } from './start/start.component';
+import { RouterModule } from '@angular/router';
 
 const COMPONENTS = [
   LoginComponent,
   UserMenuComponent,
-  ControlMessagesDirective
+  ControlMessagesDirective,
+  StartComponent
 ];
 
 @NgModule({
@@ -24,7 +27,8 @@ const COMPONENTS = [
     AngularFireModule,
     FlexLayoutModule,
     FormsModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    RouterModule
   ],
   entryComponents: [LoginComponent],
   declarations: COMPONENTS,

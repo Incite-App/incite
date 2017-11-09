@@ -7,11 +7,11 @@ import { Component, OnInit } from '@angular/core';
       <span>Incite</span>
       <div fxFlex="1 0"></div>
       <incite-user-menu></incite-user-menu>
-    </mat-toolbar>`,
+    </mat-toolbar>
+    <router-outlet></router-outlet>`,
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit {
-
 
 
   public ngOnInit(): void {

@@ -15,6 +15,7 @@ import { ErrorNotifierService } from './services/error-notifier.service';
 import { CommonModule } from '@angular/common';
 import { AngularFirestoreModule } from 'angularfire2/firestore';
 import { UserService } from './services/user.service';
+import { AdminModule } from './admin/admin.module';
 
 @NgModule({
   declarations: [
@@ -31,6 +32,7 @@ import { UserService } from './services/user.service';
     FormsModule,
     ReactiveFormsModule,
     ServicesModule,
+    AdminModule,
     AngularFireModule.initializeApp({
       apiKey: 'AIzaSyB8CAh3Cddj9SQdadar8ULN9nLFGXF2fCU',
       authDomain: 'incite-10624.firebaseapp.com',

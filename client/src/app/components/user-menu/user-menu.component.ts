@@ -4,15 +4,20 @@ import { MatDialog, MatDialogRef } from '@angular/material';
 import { InciteUser } from '../../models/user';
 import { UserService } from '../../services/user.service';
 import { Observable } from 'rxjs/Observable';
+import { Role } from '../../models/role';
 
 @Component({
   selector: 'incite-user-menu',
   template: `
-    <button *ngIf="!(user$ | async)" color="accent" mat-raised-button (click)="beginLogin()">Login</button>
-    <button *ngIf="!!(user$ | async)" mat-button [matMenuTriggerFor]="userMenu">Welcome {{(user$ | async)?.displayName}}</button>
     <mat-menu #userMenu="matMenu">
-      <button mat-button (click)="logout()">Logout</button>
+      <button mat-menu-item routerLink="/admin" routerLinkActive="active" *ngIf="(user$ | async)?.role?.isSuperUser">Admin</button>
+      <button mat-menu-item (click)="logout()">Logout</button>
     </mat-menu>
+    <button *ngIf="!(user$ | async)" color="accent" mat-raised-button (click)="beginLogin()">Login</button>
+    <button *ngIf="!!(user$ | async)" color="primary" mat-raised-button [matMenuTriggerFor]="userMenu">
+      {{(user$ | async)?.displayName}}
+      <img *ngIf="!!(user$ | async).photoURL" [src]="(user$ | async)?.photoURL" alt="avatar">
+    </button>
   `,
   styleUrls: ['./user-menu.component.scss']
 })

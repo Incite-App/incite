@@ -1,20 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { AngularFirestore, AngularFirestoreCollection } from 'angularfire2/firestore';
 import { Role } from '../../models/role';
-import { Observable } from 'rxjs/Observable';
+import { DocumentChangeAction } from 'angularfire2/firestore/interfaces';
 
 @Component({
   selector: 'incite-roles',
   template: `
     <mat-list>
-      <mat-list-item *ngFor="let role of roles | async">
-        {{role | json}}
-      </mat-list-item>
+      <incite-role *ngFor="let role of roles" [role]="role"></incite-role>
     </mat-list>`,
   styleUrls: ['./roles.component.scss']
 })
 export class RolesComponent implements OnInit {
-  public roles: Observable<Role[]>;
+  public roles: Role[] = [];
   private _rolesCollection: AngularFirestoreCollection<Role>;
 
   constructor(private _afs: AngularFirestore) {
@@ -22,7 +20,17 @@ export class RolesComponent implements OnInit {
 
   public ngOnInit() {
     this._rolesCollection = this._afs.collection('roles');
-    this.roles = this._rolesCollection.valueChanges();
+    this._rolesCollection.snapshotChanges()
+      .subscribe((actions: DocumentChangeAction[]) => {
+        this.roles = actions.map((action: DocumentChangeAction) => {
+          const role = action.payload.doc.data() as Role;
+          role.id = action.payload.doc.id;
+          return role;
+        });
+      });
+
+
   }
+
 
 }

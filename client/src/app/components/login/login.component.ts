@@ -157,9 +157,6 @@ export class LoginComponent implements OnInit {
         this.registerEmailControl.value,
         this.registerPasswordControl.value
       );
-      await this._userService.createInciteUser(result, {
-        displayName: this.fullNameControl.value
-      });
       await this._userService.syncInciteUserToFirebase();
     } catch (error) {
       console.warn(error);

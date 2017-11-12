@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { AngularFireAuth } from 'angularfire2/auth';
 import { AngularFirestore, AngularFirestoreDocument } from 'angularfire2/firestore';
 import * as firebase from 'firebase';
-import { InciteUser } from '../models/user';
+import { InciteUser, InciteUserDocument } from '../models/user';
 import { Subscription } from 'rxjs/Subscription';
 import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 import { Role } from '../models/role';
@@ -37,47 +37,52 @@ export class UserService {
     await this._router.navigate(['']);
   }
 
-  public syncInciteUserToFirebase(inciteUser?: InciteUser): Promise<InciteUser> {
+  public syncInciteUserToFirebase(displayName?: string): Promise<InciteUser> {
     const docRef = this._af.doc(`users/${this._firebaseUser.uid}`);
+
     if (!!this._userSubscription) {
       this._userSubscription.unsubscribe();
       this._userSubscription = undefined;
     }
     return new Promise((resolve, reject) => {
       this._userSubscription = docRef.valueChanges()
-        .subscribe(async (document: InciteUser) => {
+        .subscribe(async (document: InciteUserDocument) => {
           if (!document) {
-            if (!inciteUser) {
-              inciteUser = await this.createInciteUser(this._firebaseUser);
+            const inciteUser = this.createInciteUserFromFirebaseUser(this._firebaseUser);
+            if (!!displayName) {
+              inciteUser.displayName = displayName;
             }
             this._af.doc(`users/${this._firebaseUser.uid}`).set(inciteUser)
               .then(() => {
-                console.log('INCITE USER CREATED');
-                this.currentUser.next(inciteUser);
-                resolve(inciteUser);
+                console.log('INCITE USER CREATED', inciteUser);
               })
               .catch((error) => {
                 console.warn('INCITE USER CREATE ERROR', error);
                 reject(error);
               });
-          } else {
-            if (!inciteUser) {
-              inciteUser = await this.createInciteUser(this._firebaseUser, document);
-            }
+          } else if (document.displayName !== this._firebaseUser.displayName ||
+            document.email !== this._firebaseUser.email ||
+            document.photoURL !== this._firebaseUser.photoURL) {
+            const inciteUser = this.createInciteUserFromFirebaseUser(this._firebaseUser);
             docRef.update(inciteUser)
               .then(() => {
                 console.log('INCITE USER UPDATED');
                 console.log('INCITE USER', inciteUser);
-                this.currentUser.next(inciteUser);
-                resolve(inciteUser);
               })
               .catch((error) => {
                 console.warn('UPDATE ERROR', error);
                 reject(error);
               });
+          } else {
+            this.hydrateInciteUser(document)
+              .then((inciteUser: InciteUser) => {
+                console.log('INCITE USER', inciteUser);
+                this.currentUser.next(inciteUser);
+                resolve(inciteUser);
+              });
           }
         }, (error: any) => {
-          console.warn(error);
+          console.warn('ERROR SYNCING USER', error);
           if (!!this._userSubscription) {
             this._userSubscription.unsubscribe();
             this._userSubscription = undefined;
@@ -87,22 +92,37 @@ export class UserService {
     });
   }
 
-  public async createInciteUser(firebaseUser: firebase.User, inciteUser?: InciteUser): Promise<InciteUser> {
-    inciteUser = inciteUser || {};
-    inciteUser = {
-      ...inciteUser,
-      displayName: inciteUser.displayName || firebaseUser.displayName,
+  public async hydrateInciteUser(document: InciteUserDocument): Promise<InciteUser> {
+    const returnValue: InciteUser = {
+      displayName: document.displayName,
+      email: document.email,
+      photoURL: document.photoURL
+    };
+
+    if (!!document['role'] && document['role'] instanceof firebase.firestore.DocumentReference) {
+      const roleRef = document.role as any;
+      const data: firebase.firestore.DocumentSnapshot = await roleRef.get();
+      returnValue.role = data.data() as Role;
+      returnValue.role.id = data.id;
+    }
+
+    return returnValue;
+  }
+
+  public createInciteUserFromFirebaseUser(firebaseUser: firebase.User): InciteUser {
+    return {
+      displayName: firebaseUser.displayName,
       email: firebaseUser.email,
       photoURL: firebaseUser.photoURL
     };
 
-    if (!!inciteUser['role'] && inciteUser['role'] instanceof firebase.firestore.DocumentReference) {
-      const roleRef = inciteUser.role as any;
-      const data: firebase.firestore.DocumentSnapshot = await roleRef.get();
-      inciteUser.role = data.data() as Role;
-      inciteUser.role.id = data.id;
-    }
-
-    return inciteUser;
+    // if (!!inciteUser['role'] && inciteUser['role'] instanceof firebase.firestore.DocumentReference) {
+    //   const roleRef = inciteUser.role as any;
+    //   const data: firebase.firestore.DocumentSnapshot = await roleRef.get();
+    //   inciteUser.role = data.data() as Role;
+    //   inciteUser.role.id = data.id;
+    // }
+    //
+    // return inciteUser;
   }
 }

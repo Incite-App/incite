@@ -1,0 +1,21 @@
+{
+  "name": "schedule-utility",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^8.0.51",
+    "cheerio": "^1.0.0-rc.2",
+    "del": "^3.0.0",
+    "epub": "^0.2.0",
+    "moment": "^2.19.2",
+    "request": "^2.83.0",
+    "ts-node": "^3.3.0",
+    "typescript": "^2.6.1"
+  }
+}

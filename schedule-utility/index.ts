@@ -17,6 +17,8 @@ interface EpubFileMonth {
 interface Part {
   title: string;
   length?: string;
+  instructions?: string[];
+  raw?: string;
 }
 
 interface Section {
@@ -25,7 +27,7 @@ interface Section {
 }
 
 interface Meeting {
-  startDate: Date;
+  startDate: string;
   weekName: string;
   sections?: Section[];
 }
@@ -86,6 +88,37 @@ const parseEpub = (fileName: string): Promise<EpubFileMonth> => {
   });
 };
 
+function getPartFromTitle(title: string): Part {
+  // Grab the actual title from the first part of the string
+  let sanitizedTitle = (title || '').split('\n')[0].trim();
+  sanitizedTitle = sanitizedTitle.split(':')[0];
+
+  let length = '';
+  let truncatedInstructions = title;
+
+  // Check if title contains part length in parentheses
+  if (title.indexOf(')') >= 0 && title.indexOf('(') >= 0) {
+    let openIndex = title.indexOf('(') + 1;
+    let closeIndex = title.indexOf(')');
+    length = title.substring(openIndex, closeIndex);
+    // If the part has the part length, the instructions will be after that
+    truncatedInstructions = title.substr(closeIndex + 1);
+  }
+
+  // Instructions usually have line breaks, and sometimes more than one in a row
+  // No need to keep songs in the instructions
+  const instructions = truncatedInstructions
+    .split('\n')
+    .map((i: string) => (i || '').trim())
+    .filter((i: string) => {return !!i && (i || '').toLowerCase().indexOf('song') === -1;});
+
+  return {
+    title: sanitizedTitle,
+    length: length,
+    instructions: instructions
+  }
+}
+
 function getMeeting(chapter: any, epubFileMonth: EpubFileMonth): Promise<Meeting> {
   return new Promise((resolve, reject) => {
     epubFileMonth.epubFile.getChapter(chapter.id, (error, content) => {
@@ -94,18 +127,24 @@ function getMeeting(chapter: any, epubFileMonth: EpubFileMonth): Promise<Meeting
       }
 
       const $ = cheerio.load(content);
+      // Grab the chapter heading and clean out weird whitespace characters
       const headingName = ($('#p1').first().text() || '').replace(/\xA0/g, ' ');
+
+      // Check if the heading begins with the month name we are expecting, if so we must be in a new meeting
       if (headingName.indexOf(epubFileMonth.monthName) === 0) {
+        // Get the actual date of the start of the week within the month that this meeting starts in
         let startDate = headingName.split(' ')[1].split('-')[0];
         if (startDate.indexOf(String.fromCharCode(8211)) >= 0) {
           startDate = startDate.substring(0, startDate.indexOf(String.fromCharCode(8211)));
         }
+
         const meeting: Meeting = {
           weekName: headingName,
-          startDate: epubFileMonth.monthDate.clone().date(startDate).toDate(),
+          startDate: epubFileMonth.monthDate.clone().date(startDate).format('YYYY-MM-DD'),
           sections: []
         };
 
+        // Parse the sections in this meeting and add it to the final collection
         $('.section').each((i: number, el: any) => {
           if ($(el).find('h1, h2, h3').length >= 1) {
             const newSection: Section = {
@@ -114,9 +153,9 @@ function getMeeting(chapter: any, epubFileMonth: EpubFileMonth): Promise<Meeting
             };
 
             const firstPartEl = $(el).find('ul > li').first();
-            newSection.parts.push({title: firstPartEl.text()});
+            newSection.parts.push(getPartFromTitle(firstPartEl.text()));
             firstPartEl.siblings().each((siblingIndex: number, siblingEl: any) => {
-
+              newSection.parts.push(getPartFromTitle($(siblingEl).first().text()));
             });
 
             meeting.sections.push(newSection);
@@ -131,8 +170,8 @@ function getMeeting(chapter: any, epubFileMonth: EpubFileMonth): Promise<Meeting
 }
 
 async function doStuff(): Promise<any> {
-  // console.log('Deleting old files...');
-  // del.sync('./data/**/*');
+  console.log('Deleting old files...');
+  del.sync('./data/**/*');
   console.log('Downloading files...');
   const files: string[] = [];
   const downloadPromises = downloadLinks.map((link: string) => {
@@ -144,7 +183,7 @@ async function doStuff(): Promise<any> {
 
   await Promise.all(downloadPromises);
   console.log('Finished downloading files');
-  console.log('Parsing epub...');
+  console.log('Parsing epubs...');
 
   const epubFilePromises = files.map(parseEpub);
 
@@ -162,12 +201,8 @@ async function doStuff(): Promise<any> {
     });
   });
 
-  console.log('MEETING PROMISES', meetingPromises.length);
-
   let meetings = await Promise.all(meetingPromises);
   meetings = meetings.filter((meeting: Meeting) => !!meeting);
-
-  console.log('MEETINGS', meetings);
 
   fs.writeFileSync('results.json', JSON.stringify(meetings));
 

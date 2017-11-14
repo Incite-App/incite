@@ -7,6 +7,8 @@ const cheerio = require('cheerio');
 import { Moment } from 'moment';
 import * as moment from 'moment';
 
+const Firestore = require('@google-cloud/firestore');
+
 interface EpubFileMonth {
   monthName: string;
   monthYear: string;
@@ -15,6 +17,7 @@ interface EpubFileMonth {
 }
 
 interface Part {
+  index: number;
   title: string;
   length?: string;
   instructions?: string[];
@@ -22,6 +25,7 @@ interface Part {
 }
 
 interface Section {
+  index: number;
   title: string;
   parts?: Part[];
 }
@@ -88,7 +92,7 @@ const parseEpub = (fileName: string): Promise<EpubFileMonth> => {
   });
 };
 
-function getPartFromTitle(title: string): Part {
+function getPartFromTitle(title: string, index: number): Part {
   // Grab the actual title from the first part of the string
   let sanitizedTitle = (title || '').split('\n')[0].trim();
   sanitizedTitle = sanitizedTitle.split(':')[0];
@@ -113,6 +117,7 @@ function getPartFromTitle(title: string): Part {
     .filter((i: string) => {return !!i && (i || '').toLowerCase().indexOf('song') === -1;});
 
   return {
+    index: index,
     title: sanitizedTitle,
     length: length,
     instructions: instructions
@@ -148,14 +153,15 @@ function getMeeting(chapter: any, epubFileMonth: EpubFileMonth): Promise<Meeting
         $('.section').each((i: number, el: any) => {
           if ($(el).find('h1, h2, h3').length >= 1) {
             const newSection: Section = {
+              index: i,
               title: $(el).find('h1, h2, h3').first().text(),
               parts: []
             };
 
             const firstPartEl = $(el).find('ul > li').first();
-            newSection.parts.push(getPartFromTitle(firstPartEl.text()));
+            newSection.parts.push(getPartFromTitle(firstPartEl.text(), 0));
             firstPartEl.siblings().each((siblingIndex: number, siblingEl: any) => {
-              newSection.parts.push(getPartFromTitle($(siblingEl).first().text()));
+              newSection.parts.push(getPartFromTitle($(siblingEl).first().text(), siblingIndex + 1));
             });
 
             meeting.sections.push(newSection);
@@ -170,8 +176,8 @@ function getMeeting(chapter: any, epubFileMonth: EpubFileMonth): Promise<Meeting
 }
 
 async function doStuff(): Promise<any> {
-  console.log('Deleting old files...');
-  del.sync('./data/**/*');
+  // console.log('Deleting old files...');
+  // del.sync('./data/**/*');
   console.log('Downloading files...');
   const files: string[] = [];
   const downloadPromises = downloadLinks.map((link: string) => {
@@ -206,6 +212,27 @@ async function doStuff(): Promise<any> {
 
   fs.writeFileSync('results.json', JSON.stringify(meetings));
 
+  console.log('Connecting to Firestore...');
+  const firestore = new Firestore({projectId: 'incite-10624', keyFilename: './key.json'});
+  meetings.forEach(async (meeting: Meeting) => {
+    console.log('Saving meeting', meeting.weekName);
+    const meetingDocRef = firestore.doc(`meetings/${meeting.startDate}`);
+    try {
+      await meetingDocRef.set({startDate: meeting.startDate, weekName: meeting.weekName});
+      meeting.sections.forEach(async (section: Section) => {
+        const sectionRef = firestore.doc(`meetings/${meeting.startDate}/sections/${section.index}`);
+        await sectionRef.set({title: section.title});
+        section.parts.forEach(async (part: Part) => {
+          const partRef = firestore.doc(`meetings/${meeting.startDate}/sections/${section.index}/parts/${part.index}`);
+          await partRef.set(part);
+        });
+      })
+    } catch (error) {
+      console.warn(error);
+    }
+  });
+
+  console.log('ALL DONE!');
 }
 
 doStuff();

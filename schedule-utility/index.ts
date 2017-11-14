@@ -93,21 +93,36 @@ const parseEpub = (fileName: string): Promise<EpubFileMonth> => {
 };
 
 function getPartFromTitle(title: string, index: number): Part {
+  title = title || '';
   // Grab the actual title from the first part of the string
-  let sanitizedTitle = (title || '').split('\n')[0].trim();
+  let sanitizedTitle = title.split('\n')[0].trim();
   sanitizedTitle = sanitizedTitle.split(':')[0];
 
   let length = '';
   let truncatedInstructions = title;
 
+  console.log('TITLE', title);
+
+  // If the part has the part length, the instructions will be after that
+  if (title.indexOf('min. or less)') >= 0) {
+    truncatedInstructions = title.substr(title.indexOf('min. or less)') + 13);
+  } else if (title.indexOf('min.)') >= 0) {
+    truncatedInstructions = title.substr(title.indexOf('min.)') + 5);
+  }
+
   // Check if title contains part length in parentheses
   if (title.indexOf(')') >= 0 && title.indexOf('(') >= 0) {
-    let openIndex = title.indexOf('(') + 1;
-    let closeIndex = title.indexOf(')');
-    length = title.substring(openIndex, closeIndex);
-    // If the part has the part length, the instructions will be after that
-    truncatedInstructions = title.substr(closeIndex + 1);
+    const potentialLengths: string[] = title.split('(');
+    for (let i = 0; i < potentialLengths.length; i++) {
+      if ((potentialLengths[i] || '').indexOf('min.') >= 0 && (potentialLengths[i] || '').indexOf(')') >= 0) {
+        let closeIndex = (potentialLengths[i] || '').indexOf(')');
+        length = (potentialLengths[i] || '').substring(0, closeIndex);
+        break;
+      }
+    }
   }
+
+  console.log('TRUNCATED INSTRUCTIONS', truncatedInstructions);
 
   // Instructions usually have line breaks, and sometimes more than one in a row
   // No need to keep songs in the instructions

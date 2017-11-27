@@ -58,7 +58,7 @@ _____________________________________________
 	* Super User - Has Unlimited access to all orgs
 	* Org Admin - Has all access to their org
 	* COB - Has all access to their org
-	* LAMO - Can edit Student Talk Assignments and add study points in their org
+	* CLAMO - Can edit Student Talk Assignments and add study points in their org
 	* PT Coordinator - `TBD` Can edit Public Talk Assignments in their org
 	* Sound Coordinator - `TBD` Can edit Sound Assignments in their org
 	* User - View only of Schedules and Announcments for their org
